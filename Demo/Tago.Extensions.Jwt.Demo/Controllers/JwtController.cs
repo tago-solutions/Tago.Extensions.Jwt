@@ -57,7 +57,12 @@ namespace Tago.Extensions.Jwt.Demo.Controllers
                 tknInfo.Issuer = "me";
                 tknInfo.Audience = "me";
                 tknInfo.Claims.Add("test", "test");
-                tknInfo.ValidTo = DateTime.Now.AddMinutes(1);
+                tknInfo.Claims.Add("firstName", "Avi");
+                tknInfo.Claims.Add("profile", "admin");
+
+
+                tknInfo.ValidFrom = DateTime.Now.AddMinutes(5);
+                tknInfo.ValidTo = tknInfo.ValidFrom.Value.AddMinutes(2);
 
                 var tkn = tokenGenerator.Generate(tknInfo, kid);
                 return tkn;
@@ -67,6 +72,7 @@ namespace Tago.Extensions.Jwt.Demo.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
 
         //[HttpGet("generate/unsigned")]
         //public ActionResult<string> CreateUnsignedToken()

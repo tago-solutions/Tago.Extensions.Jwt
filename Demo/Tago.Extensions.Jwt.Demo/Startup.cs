@@ -55,6 +55,16 @@ namespace Tago.Extensions.Jwt.Demo
 
         private void ConfigureJwt(IServiceCollection services)
         {
+            services.AddJwt(opts => {
+                opts.Configure(Configuration.GetSection("Jwt:Settings"));
+                opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
+                opts.ConfiguePolicies(GetExamplePolicies());
+            });
+        }
+
+        private JwtSettings GetExampleSettings()
+        {
+
             JwtSettings settings = new JwtSettings
             {
                 DefaultJwt = new JwtConfig
@@ -85,21 +95,34 @@ namespace Tago.Extensions.Jwt.Demo
             TokenValidator validator1 = new TokenValidator();
             validator1.Fields.Add(new JwtField()
             {
+                MatchType = ValidationMatchType.Contains,
                 Type = JwtFieldType.Issuer,
-                AllowedValues = new string[] { "me" }
+                Values = new string[] { "me" }
             });
 
+            settings.Keys.Add("test", cfg1);
+
+
+            JsonSerializerSettings serSettings = new JsonSerializerSettings()
+            {
+                Formatting = Formatting.Indented
+            };
+            serSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
+
+            var set1 = JsonConvert.SerializeObject(settings, serSettings);
+
+            return settings;
+        }
+
+        private JwtPoliciesSettings GetExamplePolicies()
+        {
             TokenValidator validator2 = new TokenValidator();
             validator2.Fields.Add(new JwtField()
             {
+                MatchType = ValidationMatchType.NotContains,
                 Type = JwtFieldType.Issuer,
-                DisallowedValues = new string[] { "me" }
+                Values = new string[] { "me" }
             });
-
-            cfg1.TokenValidator = validator1;
-
-
-            settings.Keys.Add("test", cfg1);
 
 
             JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
@@ -111,17 +134,9 @@ namespace Tago.Extensions.Jwt.Demo
             };
             serSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
 
-            var set1 = JsonConvert.SerializeObject(settings, serSettings);
             var set2 = JsonConvert.SerializeObject(jwtPolicies, serSettings);
 
-
-
-            services.AddJwt(opts => {
-                opts.Configure(settings);
-                opts.ConfiguePolicies(jwtPolicies);
-            });
-
-
+            return jwtPolicies;
         }
     }
 }

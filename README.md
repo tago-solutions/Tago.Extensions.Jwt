@@ -1,6 +1,6 @@
 # Jwt Extension
 
-This extension is here to easy the use of JWT integration in .net core applications
+This extension lib is intended to easy the use of JWT integration in .net core applications
 
 It can be configured to:
 - validate, authenticate and authorize JWT tokens coming from different sources
@@ -9,11 +9,10 @@ It can be configured to:
 
 ## Installation
 
-##### Package Manager
 ```PM
 Install-Package Tago.Extensions.Jwt
 ```
-##### .NET CLI
+
 ```c#
 dotnet add package Tago.Extensions.Jwt
 ```
@@ -27,69 +26,8 @@ dotnet add package Tago.Extensions.Jwt
 services.AddJwt(opts => 
 {
    opts.Configure(Configuration.GetSection("Jwt:Settings"));
+   opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
    opts.ConfiguePolicies(Configuration.GetSection("Jwt:Policies"));
-});
-```
-
-
-##### Example 2 - Code
-```c#
-JwtSettings settings = new JwtSettings
-{
-	DefaultJwt = new JwtConfig
-	{
-		Audience = "me",
-		Issuer = "me",
-		ValidateIssuer = true,
-	}
-};
-
-var cfg1 = new JwtConfig
-{
-	Audience = "me",
-	Issuer = "me",
-	SigningSettings = new JwtSigningSettings
-	{
-		SymmetricKey = new JwtSymmetricKey
-		{
-			Key = "veryVerySecretKey",
-			SecurityAlgorithm = "HS256",
-		}
-	}
-};
-
-//token validators
-TokenValidator validator1 = new TokenValidator();
-validator1.Fields.Add(new JwtField()
-{
-	Type = JwtFieldType.Issuer,
-	AllowedValues = new string[] { "me" }
-});
-
-TokenValidator validator2 = new TokenValidator();
-validator2.Fields.Add(new JwtField()
-{
-	Type = JwtFieldType.Issuer,
-	DisallowedValues = new string[] { "me" }
-});
-
-cfg1.TokenValidator = validator1;
-
-//set the kid key 
-settings.Keys.Add("test", cfg1);
-
-
-
-//set policies
-JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
-string policyKey = "Jwt1"
-jwtPolicies.Items.Add(policyKey, validator2);
-
-
-//add the extension
-services.AddJwt(opts => {
-	opts.Configure(settings);
-	opts.ConfiguePolicies(jwtPolicies);
 });
 ```
 
@@ -111,7 +49,6 @@ app.UseEndpoints(endpoints =>
 ## Configuration
 
 ### keys
-
 ```javascript
 "Jwt": {
     "Settings": {
@@ -124,12 +61,15 @@ app.UseEndpoints(endpoints =>
           "Issuer": "me",
           "Audience": "me",
           "TokenValidator": {
-            "Fields": [ // list of fields to validate
+            "Fields": [ // validations fields
               {
-                "Type": "Issuer",                
+                "Type": "Issuer",
+                "Name": null,
+                "Mandatory": false,
                 "AllowedValues": [
                   "me"
                 ],
+                "DisallowedValues": null
               }
             ]
           },
@@ -158,9 +98,12 @@ app.UseEndpoints(endpoints =>
      "Policies": {
       "Items": {
         "Jwt1": { //policy key
-          "Fields": [ // list of fields to validate
+          "Fields": [ // validations fields
             {
-              "Type": "Issuer",              
+              "Type": "Issuer",
+              "Name": null,
+              "Mandatory": false,
+              "AllowedValues": null,
               "DisallowedValues": [
                 "me"
               ]
@@ -171,6 +114,37 @@ app.UseEndpoints(endpoints =>
     }
   }
 
+```
+
+### validators
+
+```javascript
+"Jwt": {    
+    "Validators": {
+      "test_me": {
+        "Fields": [
+          {
+            "Type": "Issuer",
+            "Mandatory": false,
+            "MatchType": "Contains",
+            "Values": [
+              "^(me11|meee)", //starts with one of
+              "(me|meee)$", //ends with one of
+              "mee"
+            ]
+          },
+          {
+            "Type": "Audience",
+            "Mandatory": false,
+            "MatchType": "Exact",
+            "Values": [
+              "me"
+            ]
+          }
+        ]
+      }
+    }
+  }
 ```
 
 

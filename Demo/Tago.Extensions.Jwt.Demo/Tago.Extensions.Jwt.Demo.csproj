@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Tago.Extensions.Jwt" Version="3.0.0-preview-04" />
+    <PackageReference Include="Tago.Extensions.Jwt" Version="3.0.0-preview-05" />
     <PackageReference Include="Tago.Extensions.Loggers.File" Version="2.0.6" />
   </ItemGroup>
 
