@@ -4,8 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
-using Tago.Extensions.Jwt.Abstractions;
-using Tago.Extensions.Jwt.Config;
+using Tago.Extensions.Jwt.Abstractions.Config;
+using Tago.Extensions.Jwt.Abstractions.Model;
+using Tago.Extensions.Jwt.Mvc;
 
 namespace Tago.Extensions.Jwt.Demo
 {

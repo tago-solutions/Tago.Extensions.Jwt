@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Tago.Extensions.Jwt.Abstractions;
+using System;
+using System.ComponentModel.DataAnnotations;
+using Tago.Extensions.Jwt.Abstractions.Interfaces;
+using Tago.Extensions.Jwt.Abstractions.Model;
+using Tago.Extensions.Jwt.Mvc;
 
 namespace Tago.Extensions.Jwt.Demo.Controllers
 {
