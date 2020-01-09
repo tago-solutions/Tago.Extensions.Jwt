@@ -1,120 +1,186 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using JwtWrapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
-using System.ComponentModel.DataAnnotations;
-using Tago.Extensions.Jwt.Abstractions.Interfaces;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
+using System.Threading.Tasks;
+using Tago.Extensions.Encryption;
+using Tago.Extensions.Http;
+using Tago.Extensions.Http.Interfaces;
 using Tago.Extensions.Jwt.Abstractions.Model;
-using Tago.Extensions.Jwt.Mvc;
+using Tago.Settings.Security;
 
-namespace Tago.Extensions.Jwt.Demo.Controllers
+namespace Tago.Infra.Web.Tester.Controllers
 {
-    [ApiController]
     [Route("api/v1/[controller]")]
+    [ApiController]
+    //[Authorize(policy: "Jwt1")]
     public class JwtController : ControllerBase
     {
-        private readonly ITokenGenerator tokenGenerator;
-        private readonly ILogger<JwtController> logger;
+        private ILogger logger = null;
+        private readonly ITokenSigner tokenSigner;
 
-        public JwtController(ITokenGenerator tokenGenerator, ILogger<JwtController> logger)
+        public JwtController(ILogger<JwtController> logger, ITokenSigner tokenSigner)
         {
-            this.tokenGenerator = tokenGenerator;
             this.logger = logger;
+            this.tokenSigner = tokenSigner;
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public ActionResult<string> Get()
         {
-            return "Jwt demo api";
+            return $"Welcome to jwt";
         }
 
-        [HttpGet("test/default")]
+        [HttpGet("test")]
         [Authorize]
         public ActionResult<string> TestDefault()
         {
-            return "default test";
+            return "Welcome to jwt tester";
         }
 
-        [HttpGet("test/policy")]
-        [Authorize(policy: "Jwt1")]
-        public ActionResult<string> TestPolicyBased()
+        [HttpGet("test/{type}")]
+        [Authorize]
+        public ActionResult<string> TestDefault(string type)
         {
-            return "policy test";
+            return $"Welcome to jwt '{type}' tester";
         }
 
 
-        [HttpGet("generate")]
-        public ActionResult<string> Generate(string kid)
+        [HttpGet("policy")]
+        [Authorize(policy: "Jwt1")]
+        public ActionResult<string> TestPolicy()
+        {
+            return $"Welcome to jwt 'Jwt1' policy tester";
+        }
+
+
+
+        [HttpGet("generate/test")]
+        public string Generate()
+        {
+            JwtToken token = new JwtToken
+            {
+                Audience = "Me",
+                Issuer = "Me",
+                ValidTo = DateTime.Now.AddYears(1),
+            };
+
+            var dt = DateTime.Now;
+            token.ValidFrom = dt;
+            token.ValidTo = dt.AddDays(5);
+            token.Claims.Add("amr", "pass");
+            token.Claims.Add("amr", "pass_2");
+            token.Claims.Add("sub", "psu-user-name");
+            token.Claims.Add("MyName", "Golan Sheetrit");
+
+
+            var s = JsonConvert.SerializeObject(token, Formatting.Indented);
+
+            //return BadRequest
+
+            return Generate(token);
+        }
+
+
+        [HttpPost("generate/jwt")]
+        public string Generate(JwtToken token)
+        {
+            return tokenSigner.GenerateUnsigned(token);
+        }
+
+        [HttpPost("generate/payload")]
+        public async Task<ActionResult<string>> GenerateFormPayload()
+        {
+            using (var reader = new System.IO.StreamReader(Request.Body))
+            {
+                var body = await reader.ReadToEndAsync();
+
+                if (!string.IsNullOrWhiteSpace(body))
+                {
+                    var payload = JwtPayload.Deserialize(body);
+
+                    return Ok(tokenSigner.GenerateUnsigned(payload));
+                }
+                else
+                {
+                    return BadRequest("invalid jwt payload");
+                }
+            }
+        }
+
+
+        [HttpGet("sign")]
+        public ActionResult<string> SignString([FromQuery]string token, [FromQuery]string key)
         {
             try
             {
-                this.logger.LogDebug($"generating test token kid: {kid}");
-
-                //if kid null the token is unsigned
-
-                JwtToken tknInfo = new JwtToken();
-                tknInfo.Issuer = "me";
-                tknInfo.Audience = "me";
-                tknInfo.Claims.Add("test", "test");
-                tknInfo.Claims.Add("firstName", "Avi");
-                tknInfo.Claims.Add("profile", "admin");
-
-
-                tknInfo.ValidFrom = DateTime.Now.AddMinutes(5);
-                tknInfo.ValidTo = tknInfo.ValidFrom.Value.AddMinutes(2);
-
-                var tkn = tokenGenerator.Generate(tknInfo, kid);
-                return tkn;
+                var jwtToken = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(token);
+                return this.tokenSigner.Sign(jwtToken, key ?? jwtToken.Issuer);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                return BadRequest("invalid jwt string");
             }
         }
 
+        [HttpPost("sign/jwt")]
+        public string SignJwtObject(JwtToken token, [FromQuery]string key = null)
+        {
+            return tokenSigner.Sign(token, key ?? token?.Issuer);
+        }
 
-        //[HttpGet("generate/unsigned")]
-        //public ActionResult<string> CreateUnsignedToken()
+        [HttpPost("sign/payload")]
+        public async Task<ActionResult<string>> SignJwtPayload([FromQuery]string key = null)
+        {
+            using (var reader = new System.IO.StreamReader(Request.Body))
+            {
+                var body = await reader.ReadToEndAsync();
+
+                if (!string.IsNullOrWhiteSpace(body))
+                {
+                    var payload = JwtPayload.Deserialize(body);
+
+                    return Ok(tokenSigner.Sign(payload, key ?? payload.Iss));
+                }
+                else
+                {
+                    return BadRequest("invalid jwt payload");
+                }
+            }
+        }
+
+        //[HttpGet("sign/{kid}")]
+        //public ActionResult<string> Sign([FromRoute] string kid, [FromQuery]string token)
         //{
         //    try
         //    {
-        //        return Generate(null);
+        //        var jwtToken = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(token);
+        //        return this.tokenSigner.Sign(jwtToken, kid);
         //    }
-        //    catch(Exception ex)
+        //    catch (Exception ex)
         //    {
-        //        return BadRequest(ex.Message);
+        //        return BadRequest("invalid jwt string");
         //    }
         //}
 
-        [HttpGet("sign/{kid}")]
-        public ActionResult<string> Sign([FromRoute]string kid, string token)
-        {
-            try
-            {
-                this.logger.LogDebug("create token test called..");
-                var tkn = tokenGenerator.SignJwtToken(token, kid, validTo: DateTime.Now.AddMinutes(1));
-                HttpContext.SetResponseAccessToken(tkn);
-                return tkn;
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
 
-        [HttpPost("generate/{kid}")]
-        public ActionResult<string> Sign([FromRoute]string kid, [FromBody] JwtToken request)
-        {
-            this.logger.LogDebug("create token test called..");
-            var tkn = tokenGenerator.Generate(request, kid);
-            HttpContext.SetResponseAccessToken(tkn);
-            return tkn;
-        }
-    }
+        //[HttpPost("sign")]
+        //public string Sign([FromQuery]string key, JwtToken token)
+        //{
+        //    return tokenSigner.Sign(token, key ?? token?.Issuer);
+        //}
 
-    public class TokenRequest
-    {
-        [Required]
-        public string Token { get; set; }
+
+
+
+
+
+
+
     }
 }

@@ -24,6 +24,7 @@ namespace Tago.Extensions.Jwt.Demo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<ITokenSigner, TokenSigner>();
             ConfigureJwtFromConfiguration(services);
             //ConfigureJwtWrapper(services);
             // Or ConfigureJwt(services);
@@ -60,12 +61,15 @@ namespace Tago.Extensions.Jwt.Demo
 
         private void ConfigureJwtWrapper(IServiceCollection services)
         {
-            services.AddJwtWrapper(opts => {
+            services.AddJwtValidator(opts => {
                 opts.ConfigurationSettings = new JwtConfigurationSettings
                 {
-                    ConnectionString = "",
+                    ConnectionString = "bla",
                 };
-                opts.JwksUrl = @".\Jwks\{kid}\.well-known\jwks.json";
+                opts.JwksUrl = @"T:\Projects\TAGO_TFS\TAGO\TAGO\.NetCore\Infra\Infra-2.2\Security\Tago.Extensions.Jwt\Jwks\{kid}\.well-known\jwks.json";
+            });
+
+            services.AddJwtSigner(opts => {
             });
         }
 
