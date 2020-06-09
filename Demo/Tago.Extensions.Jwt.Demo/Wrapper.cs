@@ -47,9 +47,15 @@ namespace JwtWrapper
             {
                 opts.Configure(new JwtSettings
                 {
-                    DefaultJwtJwks = new JwtJwks
+                    DefaultValidationSettings = new JwtValidationConfig
                     {
-                        Path = cfg.JwksUrl
+                        KeySettings = new JwtSigningSettings
+                        {
+                            Jwks = new JwtJwks
+                            {
+                                Path = cfg.JwksUrl
+                            }
+                        }
                     }
                     //DefaultJwt = new JwtConfig
                     //{

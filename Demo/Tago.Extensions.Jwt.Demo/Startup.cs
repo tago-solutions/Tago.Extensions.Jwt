@@ -6,8 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using System;
+using Tago.Extensions.JwkUtils;
 using Tago.Extensions.Jwt.Abstractions.Config;
 using Tago.Extensions.Jwt.Abstractions.Model;
+using Tago.Extensions.Jwt.Handlers;
 using Tago.Extensions.Jwt.Mvc;
 
 namespace Tago.Extensions.Jwt.Demo
@@ -24,6 +26,7 @@ namespace Tago.Extensions.Jwt.Demo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<Model.JwksSettings>(Configuration.GetSection("Jwks"));
             services.AddSingleton<ITokenSigner, TokenSigner>();
             ConfigureJwtFromConfiguration(services);
             //ConfigureJwtWrapper(services);
@@ -57,6 +60,8 @@ namespace Tago.Extensions.Jwt.Demo
                 opts.ConfigurePolicies(Configuration.GetSection("Jwt:Policies"));
                 opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
             });
+
+            services.AddSingleton<ISecurityKeyProvider, SecurityKeyProviderEx>();
         }
 
         private void ConfigureJwtWrapper(IServiceCollection services)
