@@ -4,11 +4,11 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Threading.Tasks;
-using Tago.Extensions.Jwt.Abstractions.Config;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Tago.Extensions.Jwt.Abstractions.Interfaces;
 using Tago.Extensions.Jwt.Abstractions.Model;
-using Tago.Extensions.Jwt.Handlers;
+using Tago.Extensions.Jwt.Configuration;
 
 namespace JwtWrapper
 {
@@ -23,14 +23,14 @@ namespace JwtWrapper
     }
 
 
-    public class JwtSignerOptions
-    {
-    }
+    //public class JwtSignerOptions
+    //{
+    //}
 
 
     public static class Extensions
     {
-        public static IServiceCollection AddJwtValidator(this IServiceCollection services, Action<JwtValidatorOptions> options)
+        public static IServiceCollection AddValidator(this IServiceCollection services, Action<JwtValidatorOptions> options)
         {
             JwtValidatorOptions cfg = new JwtValidatorOptions();
             if (options != null)
@@ -39,40 +39,32 @@ namespace JwtWrapper
             }
 
             Options.Create(cfg.ConfigurationSettings);
-
             services.AddSingleton(cfg.ConfigurationSettings);
 
 
-            Tago.Extensions.Jwt.Mvc.Extension.AddJwt(services, opts =>
+            services.AddJwt(opts =>
             {
-                opts.Configure(new JwtSettings
-                {
-                    DefaultValidationSettings = new JwtValidationConfig
+                opts.Configure(o =>
                     {
-                        KeySettings = new JwtSigningSettings
+                        o.SetDefaultValidationSettings(new JwtConfig
                         {
-                            Jwks = new JwtJwks
+                            ValidationSettings = new JwtValidationConfig
                             {
-                                Path = cfg.JwksUrl
+                                KeySettings = new JwtSigningSettings
+                                {
+                                    Jwks = new JwtJwks
+                                    {
+                                        Path = cfg.JwksUrl,
+                                    },
+                                }
                             }
-                        }
+                        });                        
+                     
                     }
-                    //DefaultJwt = new JwtConfig
-                    //{
-                    //    PublicKeysSettings = new JwtSigningSettings
-                    //    {
-                    //        Jwks = new JwtJwks
-                    //        {
-                    //            Path = cfg.JwksUrl
-                    //        }
-                    //    }
-                    //}
-                });
+                );
 
                 opts.SetTokenValidatorGetter<TokenValidatorGetter>();
-                opts.SetSignerSettingsGetter<SignerSettingsGetter>();
-                opts.SetValidationSettingsGetter<ValidationSettingsGetter>();
-
+                opts.SetValidationSettingsGetter<JwtWrapper.ValidationSettingsGetter>();
             });
 
 
@@ -82,20 +74,12 @@ namespace JwtWrapper
             return services;
         }
 
-
-        public static IServiceCollection AddJwtSigner(this IServiceCollection services, Action<JwtSignerOptions> options)
+        public static IServiceCollection AddSigner(this IServiceCollection services, Action<JwtSignerOptions> options = null)
         {
-            JwtSignerOptions cfg = new JwtSignerOptions();
-            if (options != null)
-            {
-                options.Invoke(cfg);
-            }
-
-
+            services.AddJwtSigner(options);
             services.AddSingleton<ITokenSigner, TokenSigner>();
-
             return services;
-        }
+        }      
 
     }
 
@@ -138,10 +122,16 @@ namespace JwtWrapper
             return defaultTokenValidator;
         }
     }
-    public class ValidationSettingsGetter : IValidationSettingsGetter
+    public class ValidationSettingsGetter : Tago.Extensions.Jwt.Abstractions.Interfaces.IValidationSettingsGetter
     {
-        public ValidationSettingsGetter()
+        private JwtSettings options;
+        private JwtValidationConfig _default = null;
+        public ValidationSettingsGetter(IOptionsMonitor<JwtSettings> options)
         {
+            this.options = options.CurrentValue;
+            options.OnChange(o => {
+                this.options = o;
+            });
         }
 
         public TimeSpan? GetCacheTimeOut()
@@ -149,13 +139,13 @@ namespace JwtWrapper
             return null;
         }
 
-        public JwtValidationConfig GetValidationSettings(string kid, string issuer = null)
+        public JwtValidationConfig GetDefaultValidationSettings()
         {
-            if (kid != null)
+            if (_default == null)
             {
                 var ks = new JwtSigningSettings
                 {
-                    SymmetricKey = new JwtSymmetricKey
+                    SymmetricKey = new Tago.Extensions.Security.SecurityKeySymmetricKey
                     {
                         Key = "veryVerySecretKey",
                         SecurityAlgorithm = "HS256",
@@ -170,7 +160,26 @@ namespace JwtWrapper
                     KeySettings = ks,
                 };
 
-                return cfg;
+                _default = cfg;
+            }
+
+            return _default;
+        }
+
+        public JwtValidationConfig GetValidationSettings(string kid, string issuer = null)
+        {
+            if (kid != null)
+            {
+                if (this.options?.Keys?.Count > 0)
+                {
+                    KeyValuePair<string, JwtConfig>? opt = this.options.Keys.FirstOrDefault(o => new Regex(o.Key).Match(kid).Success);
+                    if( opt?.Value != null)
+                    {
+                        return opt.Value.Value.ValidationSettings;
+                    }
+                }                
+
+                return GetDefaultValidationSettings();
             }
 
             return null;
@@ -189,11 +198,14 @@ namespace JwtWrapper
 
         public JwtSignerConfig GetSignerSettings(string key, JwtPayload claims)
         {
+
+            //Tago.Extensions.Jwt.Requirements
+
             if (key != null)
             {
                 var ks = new JwtSigningSettings
                 {
-                    SymmetricKey = new JwtSymmetricKey
+                    SymmetricKey = new Tago.Extensions.Security.SecurityKeySymmetricKey
                     {
                         Key = "veryVerySecretKey",
                         SecurityAlgorithm = "HS256",
@@ -218,7 +230,7 @@ namespace JwtWrapper
 
     public interface ITokenSigner : ITokenGenerator
     {
-        Task<string> SignAsync(JwtToken token, string key);
+        //Task<string> SignAsync(JwtToken token, string key);
     }
 
 
@@ -235,11 +247,7 @@ namespace JwtWrapper
         {
             return tokenGenerator.GenerateTest();
         }
-
-        public string GenerateUnsigned(JwtToken token)
-        {
-            return tokenGenerator.GenerateUnsigned(token);
-        }
+        
 
         public string GenerateUnsigned(JwtPayload token)
         {
@@ -249,21 +257,11 @@ namespace JwtWrapper
         public string Sign(JwtSecurityToken token, string configurationKey, DateTime? validFrom = null, DateTime? validTo = null)
         {
             return tokenGenerator.Sign(token, configurationKey, validFrom, validTo);
-        }
-
-        public string Sign(JwtToken token, string configurationKey)
-        {
-            return tokenGenerator.Sign(token, configurationKey);
-        }
+        }     
 
         public string Sign(JwtPayload token, string configurationKey)
         {
             return tokenGenerator.Sign(token, configurationKey);
-        }
-
-        public Task<string> SignAsync(JwtToken token, string key)
-        {
-            return Task.FromResult(tokenGenerator.Sign(token, key));
         }
     }
 

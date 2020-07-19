@@ -6,11 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
 using System;
-using Tago.Extensions.JwkUtils;
-using Tago.Extensions.Jwt.Abstractions.Config;
 using Tago.Extensions.Jwt.Abstractions.Model;
-using Tago.Extensions.Jwt.Handlers;
-using Tago.Extensions.Jwt.Mvc;
+using Tago.Extensions.Jwt.Configuration;
+//using Tago.Extensions.JwkUtils;
 
 namespace Tago.Extensions.Jwt.Demo
 {
@@ -27,7 +25,7 @@ namespace Tago.Extensions.Jwt.Demo
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<Model.JwksSettings>(Configuration.GetSection("Jwks"));
-            services.AddSingleton<ITokenSigner, TokenSigner>();
+            //services.AddSingleton<ITokenSigner, TokenSigner>();
             ConfigureJwtFromConfiguration(services);
             //ConfigureJwtWrapper(services);
             // Or ConfigureJwt(services);
@@ -55,26 +53,64 @@ namespace Tago.Extensions.Jwt.Demo
 
         private void ConfigureJwtFromConfiguration(IServiceCollection services)
         {
-            services.AddJwt(opts => {
-                opts.Configure(Configuration.GetSection("Jwt:Settings"));
-                opts.ConfigurePolicies(Configuration.GetSection("Jwt:Policies"));
-                opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
+            //services.AddJwt(opts => {
+            //    opts.Configure(Configuration.GetSection("Jwt:Settings"));
+            //    opts.ConfigurePolicies(Configuration.GetSection("Jwt:Policies"));
+            //    opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
+            //});
+
+            var ks = new JwtSigningSettings
+            {
+                SymmetricKey = new Security.SecurityKeySymmetricKey
+                {
+                    Key = "veryVerySecretKey",
+                    SecurityAlgorithm = "HS256",
+                }
+            };
+
+            services.AddJwt(o =>
+            {
+                o.Configure(Configuration.GetSection("Jwt:Settings"));
+                //o.SetValidationSettingsGetter<JwtWrapper.ValidationSettingsGetter>();
+                //o.Configure(opts =>
+                //{
+                //    opts.DefaultValidationSettings = new JwtValidationConfig
+                //    {
+                //        KeySettings = ks
+                //    };                   
+
+                //});
+                //o.Configure
+
             });
 
-            services.AddSingleton<ISecurityKeyProvider, SecurityKeyProviderEx>();
+            services.AddSigner(o =>
+            {
+                o.SetSignerSettingsGetter<SignerSettingsGetter>();
+                //o.Configure(cfg =>
+                //{
+                //    cfg.Keys.Add("test", new JwtSignerConfig("test")
+                //    {                        
+                //        KeySettings = ks
+                //    });
+                //});
+            });
+            //services.AddSingleton<ISignerSettingsGetter, SignerSettingsGetter>();
+            //services.AddSingleton<ISecurityKeyProvider, SecurityKeyProviderEx>();
         }
 
         private void ConfigureJwtWrapper(IServiceCollection services)
         {
-            services.AddJwtValidator(opts => {
+            services.AddValidator(opts => {
                 opts.ConfigurationSettings = new JwtConfigurationSettings
                 {
                     ConnectionString = "bla",
                 };
-                opts.JwksUrl = @"T:\Projects\TAGO_TFS\TAGO\TAGO\.NetCore\Infra\Infra-2.2\Security\Tago.Extensions.Jwt\Jwks\{kid}\.well-known\jwks.json";
+                opts.JwksUrl = @"C:\Jwks\{kid}\.well-known\jwks.json";
             });
 
-            services.AddJwtSigner(opts => {
+            services.AddSigner(opts => {
+                //opts.SetTokenValidatorGetter
             });
         }
 
@@ -97,7 +133,7 @@ namespace Tago.Extensions.Jwt.Demo
 
             var ks = new JwtSigningSettings
             {
-                SymmetricKey = new JwtSymmetricKey
+                SymmetricKey = new Security.SecurityKeySymmetricKey
                 {
                     Key = "veryVerySecretKey",
                     SecurityAlgorithm = "HS256",
@@ -106,12 +142,12 @@ namespace Tago.Extensions.Jwt.Demo
 
             var cfg1 = new JwtConfig
             {
-                SignerSettings = new JwtSignerConfig
-                {
-                    Audience = "me",
-                    Issuer = "me",
-                    KeySettings = ks
-                },
+                //SignerSettings = new JwtSignerConfig
+                //{
+                //    Audience = "me",
+                //    Issuer = "me",
+                //    KeySettings = ks
+                //},
                 ValidationSettings = new JwtValidationConfig
                 {
                     KeySettings = ks,
@@ -166,14 +202,7 @@ namespace Tago.Extensions.Jwt.Demo
             var set2 = JsonConvert.SerializeObject(jwtPolicies, serSettings);
 
 
-            return settings;
-
-            //services.AddJwt(opts => {
-            //    //opts.Configure(settings);
-            //    opts.Configure(Configuration.GetSection("Jwt:Settings"));
-            //    opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
-            //    opts.ConfiguePolicies(jwtPolicies);
-            //});
+            return settings;           
         }
 
         private JwtValidators GetExampleJwtValidators()
@@ -203,7 +232,7 @@ namespace Tago.Extensions.Jwt.Demo
             });
 
             obj.Add("test_me", new TokenValidator[] { validator1, validator2 });
-            return obj;            
+            return obj;
         }
 
         private JwtPoliciesSettings GetExamplePolicies()

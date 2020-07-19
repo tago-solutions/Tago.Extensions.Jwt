@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Tago.Extensions.Jwt.Demo.Model
 {
-    public class JwksSettings
+    internal class JwksSettings
     {
         public string FilePath { get; set; }
     }
