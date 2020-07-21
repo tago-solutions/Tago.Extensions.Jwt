@@ -46,9 +46,8 @@ namespace JwtWrapper
             {
                 opts.Configure(o =>
                     {
-                        o.SetDefaultValidationSettings(new JwtConfig
-                        {
-                            ValidationSettings = new JwtValidationConfig
+                        o.SetDefaultValidationSettings(
+                            new JwtValidationConfig
                             {
                                 KeySettings = new JwtSigningSettings
                                 {
@@ -57,7 +56,7 @@ namespace JwtWrapper
                                         Path = cfg.JwksUrl,
                                     },
                                 }
-                            }
+                            
                         });                        
                      
                     }
@@ -172,10 +171,10 @@ namespace JwtWrapper
             {
                 if (this.options?.Keys?.Count > 0)
                 {
-                    KeyValuePair<string, JwtConfig>? opt = this.options.Keys.FirstOrDefault(o => new Regex(o.Key).Match(kid).Success);
-                    if( opt?.Value != null)
+                    JwtValidationConfig opt = this.options.Keys.OrderBy(o=>o.Priority).FirstOrDefault(o => o.IsMatch(kid));
+                    if( opt != null)
                     {
-                        return opt.Value.Value.ValidationSettings;
+                        return opt;
                     }
                 }                
 
@@ -213,7 +212,7 @@ namespace JwtWrapper
                 };
 
                 return new JwtSignerConfig
-                {
+                {                    
                     Kid = key,
                     Audience = "Me",
                     Issuer = "Me",

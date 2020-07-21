@@ -84,17 +84,19 @@ namespace Tago.Extensions.Jwt.Demo
 
             });
 
-            services.AddSigner(o =>
-            {
-                o.SetSignerSettingsGetter<SignerSettingsGetter>();
-                //o.Configure(cfg =>
-                //{
-                //    cfg.Keys.Add("test", new JwtSignerConfig("test")
-                //    {                        
-                //        KeySettings = ks
-                //    });
-                //});
+            services.AddSigner(o=> {
+                o.Configure(Configuration.GetSection("Jwt:Signer"));
             });
+            //{
+            //    //o.SetSignerSettingsGetter<SignerSettingsGetter>();
+            //    //o.Configure(cfg =>
+            //    //{
+            //    //    cfg.Keys.Add("test", new JwtSignerConfig("test")
+            //    //    {                        
+            //    //        KeySettings = ks
+            //    //    });
+            //    //});
+            //});
             //services.AddSingleton<ISignerSettingsGetter, SignerSettingsGetter>();
             //services.AddSingleton<ISecurityKeyProvider, SecurityKeyProviderEx>();
         }
@@ -140,7 +142,7 @@ namespace Tago.Extensions.Jwt.Demo
                 }
             };
 
-            var cfg1 = new JwtConfig
+            var cfg1 = new JwtValidationConfig("test")
             {
                 //SignerSettings = new JwtSignerConfig
                 //{
@@ -148,14 +150,12 @@ namespace Tago.Extensions.Jwt.Demo
                 //    Issuer = "me",
                 //    KeySettings = ks
                 //},
-                ValidationSettings = new JwtValidationConfig
-                {
-                    KeySettings = ks,
-                    ValidateAudience = true,
-                    ValidateIssuer = true,
-                    ValidIssuer = "me",
-                    ValidAudience = "me",
-                }
+                KeySettings = ks,
+                ValidateAudience = true,
+                ValidateIssuer = true,
+                ValidIssuer = "me",
+                ValidAudience = "me",
+
             };
 
             TokenValidator validator1 = new TokenValidator();
@@ -183,7 +183,7 @@ namespace Tago.Extensions.Jwt.Demo
             //cfg1.TokenValidator = validator1;
 
 
-            settings.Keys.Add("test", cfg1);
+            settings.Keys.Add(cfg1);
 
 
             JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
