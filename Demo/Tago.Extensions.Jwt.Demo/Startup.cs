@@ -71,6 +71,23 @@ namespace Tago.Extensions.Jwt.Demo
             services.AddJwt(o =>
             {
                 o.Configure(Configuration.GetSection("Jwt:Settings"));
+
+                o.ConfigureValildators(builder => {
+                    builder.Add("iss", new TokenValidator[] {
+                        new TokenValidator
+                        {
+                            Fields = new System.Collections.Generic.List<JwtField>
+                            {
+                                new JwtField
+                                {
+                                    Name = "iss",
+                                    Mandatory = true,
+                                }
+                            }
+                        }
+                });                
+                });
+
                 //o.SetValidationSettingsGetter<JwtWrapper.ValidationSettingsGetter>();
                 //o.Configure(opts =>
                 //{
@@ -101,163 +118,163 @@ namespace Tago.Extensions.Jwt.Demo
             //services.AddSingleton<ISecurityKeyProvider, SecurityKeyProviderEx>();
         }
 
-        private void ConfigureJwtWrapper(IServiceCollection services)
-        {
-            services.AddValidator(opts => {
-                opts.ConfigurationSettings = new JwtConfigurationSettings
-                {
-                    ConnectionString = "bla",
-                };
-                opts.JwksUrl = @"C:\Jwks\{kid}\.well-known\jwks.json";
-            });
+        //private void ConfigureJwtWrapper(IServiceCollection services)
+        //{
+        //    services.AddValidator(opts => {
+        //        opts.ConfigurationSettings = new JwtConfigurationSettings
+        //        {
+        //            ConnectionString = "bla",
+        //        };
+        //        opts.JwksUrl = @"C:\Jwks\{kid}\.well-known\jwks.json";
+        //    });
 
-            services.AddSigner(opts => {
-                //opts.SetTokenValidatorGetter
-            });
-        }
+        //    services.AddSigner(opts => {
+        //        //opts.SetTokenValidatorGetter
+        //    });
+        //}
 
-        private void ConfigureJwt(IServiceCollection services)
-        {
-            services.AddJwt(opts => {
-                opts.Configure(Configuration.GetSection("Jwt:Settings"));
-                opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
-                opts.ConfigurePolicies(GetExamplePolicies());
-            });
-        }
+        //private void ConfigureJwt(IServiceCollection services)
+        //{
+        //    services.AddJwt(opts => {
+        //        opts.Configure(Configuration.GetSection("Jwt:Settings"));
+        //        opts.ConfigureValildators(Configuration.GetSection("Jwt:Validators"));
+        //        opts.ConfigurePolicies(GetExamplePolicies());
+        //    });
+        //}
 
-        private JwtSettings GetExampleSettings()
-        {
-            JwtSettings settings = new JwtSettings
-            {
-                ValidatorKey = "%kid%",
-                SecurityKeysCacheExpiration = TimeSpan.FromMinutes(5),
-            };
+        //private JwtSettings GetExampleSettings()
+        //{
+        //    JwtSettings settings = new JwtSettings
+        //    {
+        //        ValidatorKey = "%kid%",
+        //        SecurityKeysCacheExpiration = TimeSpan.FromMinutes(5),
+        //    };
 
-            var ks = new JwtSigningSettings
-            {
-                SymmetricKey = new Security.SecurityKeySymmetricKey
-                {
-                    Key = "veryVerySecretKey",
-                    SecurityAlgorithm = "HS256",
-                }
-            };
+        //    var ks = new JwtSigningSettings
+        //    {
+        //        SymmetricKey = new Security.SecurityKeySymmetricKey
+        //        {
+        //            Key = "veryVerySecretKey",
+        //            SecurityAlgorithm = "HS256",
+        //        }
+        //    };
 
-            var cfg1 = new JwtValidationConfig("test")
-            {
-                //SignerSettings = new JwtSignerConfig
-                //{
-                //    Audience = "me",
-                //    Issuer = "me",
-                //    KeySettings = ks
-                //},
-                KeySettings = ks,
-                ValidateAudience = true,
-                ValidateIssuer = true,
-                ValidIssuer = "me",
-                ValidAudience = "me",
+        //    var cfg1 = new JwtValidationConfig("test")
+        //    {
+        //        //SignerSettings = new JwtSignerConfig
+        //        //{
+        //        //    Audience = "me",
+        //        //    Issuer = "me",
+        //        //    KeySettings = ks
+        //        //},
+        //        KeySettings = ks,
+        //        ValidateAudience = true,
+        //        ValidateIssuer = true,
+        //        ValidIssuer = "me",
+        //        ValidAudience = "me",
 
-            };
+        //    };
 
-            TokenValidator validator1 = new TokenValidator();
-            validator1.Fields.Add(new JwtField()
-            {
-                Type = JwtFieldType.Issuer,
-                MatchType = ValidationMatchType.Contains,
-                IgnoreCase = true,
-                Values = new string[] { "me*", "meee" }
-            });
-            validator1.Fields.Add(new JwtField()
-            {
-                Type = JwtFieldType.Audience,
-                MatchType = ValidationMatchType.NotContains,
-                Values = new string[] { "me*", "meee" }
-            });
+        //    TokenValidator validator1 = new TokenValidator();
+        //    validator1.Fields.Add(new JwtField()
+        //    {
+        //        Type = JwtFieldType.Issuer,
+        //        MatchType = ValidationMatchType.Contains,
+        //        IgnoreCase = true,
+        //        Values = new string[] { "me*", "meee" }
+        //    });
+        //    validator1.Fields.Add(new JwtField()
+        //    {
+        //        Type = JwtFieldType.Audience,
+        //        MatchType = ValidationMatchType.NotContains,
+        //        Values = new string[] { "me*", "meee" }
+        //    });
 
-            TokenValidator validator2 = new TokenValidator();
-            validator2.Fields.Add(new JwtField()
-            {
-                Type = JwtFieldType.Issuer,
-                Values = new string[] { "me" }
-            });
+        //    TokenValidator validator2 = new TokenValidator();
+        //    validator2.Fields.Add(new JwtField()
+        //    {
+        //        Type = JwtFieldType.Issuer,
+        //        Values = new string[] { "me" }
+        //    });
 
-            //cfg1.TokenValidator = validator1;
-
-
-            settings.Keys.Add(cfg1);
+        //    //cfg1.TokenValidator = validator1;
 
 
-            JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
-            jwtPolicies.Items.Add("Jwt1", new TokenValidator[] { validator2 });
+        //    settings.Keys.Add(cfg1);
 
 
-            JsonSerializerSettings serSettings = new JsonSerializerSettings()
-            {
-                Formatting = Formatting.Indented,
-                NullValueHandling = NullValueHandling.Ignore,
-
-            };
-            serSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
-
-            var set1 = JsonConvert.SerializeObject(settings, serSettings);
-            var set2 = JsonConvert.SerializeObject(jwtPolicies, serSettings);
+        //    JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
+        //    jwtPolicies.Items.Add("Jwt1", new TokenValidator[] { validator2 });
 
 
-            return settings;           
-        }
+        //    JsonSerializerSettings serSettings = new JsonSerializerSettings()
+        //    {
+        //        Formatting = Formatting.Indented,
+        //        NullValueHandling = NullValueHandling.Ignore,
 
-        private JwtValidators GetExampleJwtValidators()
-        {
-            JwtValidators obj = new JwtValidators();
+        //    };
+        //    serSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
 
-            TokenValidator validator1 = new TokenValidator();
-            validator1.Fields.Add(new JwtField()
-            {
-                Type = JwtFieldType.Issuer,
-                MatchType = ValidationMatchType.Contains,
-                IgnoreCase = true,
-                Values = new string[] { "me*", "meee" }
-            });
-            validator1.Fields.Add(new JwtField()
-            {
-                Type = JwtFieldType.Audience,
-                MatchType = ValidationMatchType.NotContains,
-                Values = new string[] { "me*", "meee" }
-            });
-
-            TokenValidator validator2 = new TokenValidator();
-            validator2.Fields.Add(new JwtField()
-            {
-                Type = JwtFieldType.Issuer,
-                Values = new string[] { "me" }
-            });
-
-            obj.Add("test_me", new TokenValidator[] { validator1, validator2 });
-            return obj;
-        }
-
-        private JwtPoliciesSettings GetExamplePolicies()
-        {
-            TokenValidator validator2 = new TokenValidator();
-            validator2.Fields.Add(new JwtField()
-            {
-                MatchType = ValidationMatchType.NotContains,
-                Type = JwtFieldType.Issuer,
-                Values = new string[] { "me" }
-            });
+        //    var set1 = JsonConvert.SerializeObject(settings, serSettings);
+        //    var set2 = JsonConvert.SerializeObject(jwtPolicies, serSettings);
 
 
-            JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
-            jwtPolicies.Items.Add("Jwt1", new TokenValidator[] { validator2 });
+        //    return settings;           
+        //}
 
-            JsonSerializerSettings serSettings = new JsonSerializerSettings()
-            {
-                Formatting = Formatting.Indented
-            };
-            serSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
+        //private JwtValidators GetExampleJwtValidators()
+        //{
+        //    JwtValidators obj = new JwtValidators();
 
-            var set2 = JsonConvert.SerializeObject(jwtPolicies, serSettings);
+        //    TokenValidator validator1 = new TokenValidator();
+        //    validator1.Fields.Add(new JwtField()
+        //    {
+        //        Type = JwtFieldType.Issuer,
+        //        MatchType = ValidationMatchType.Contains,
+        //        IgnoreCase = true,
+        //        Values = new string[] { "me*", "meee" }
+        //    });
+        //    validator1.Fields.Add(new JwtField()
+        //    {
+        //        Type = JwtFieldType.Audience,
+        //        MatchType = ValidationMatchType.NotContains,
+        //        Values = new string[] { "me*", "meee" }
+        //    });
 
-            return jwtPolicies;
-        }
+        //    TokenValidator validator2 = new TokenValidator();
+        //    validator2.Fields.Add(new JwtField()
+        //    {
+        //        Type = JwtFieldType.Issuer,
+        //        Values = new string[] { "me" }
+        //    });
+
+        //    obj.Add("test_me", new TokenValidator[] { validator1, validator2 });
+        //    return obj;
+        //}
+
+        //private JwtPoliciesSettings GetExamplePolicies()
+        //{
+        //    TokenValidator validator2 = new TokenValidator();
+        //    validator2.Fields.Add(new JwtField()
+        //    {
+        //        MatchType = ValidationMatchType.NotContains,
+        //        Type = JwtFieldType.Issuer,
+        //        Values = new string[] { "me" }
+        //    });
+
+
+        //    JwtPoliciesSettings jwtPolicies = new JwtPoliciesSettings();
+        //    jwtPolicies.Items.Add("Jwt1", new TokenValidator[] { validator2 });
+
+        //    JsonSerializerSettings serSettings = new JsonSerializerSettings()
+        //    {
+        //        Formatting = Formatting.Indented
+        //    };
+        //    serSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter());
+
+        //    var set2 = JsonConvert.SerializeObject(jwtPolicies, serSettings);
+
+        //    return jwtPolicies;
+        //}
     }
 }

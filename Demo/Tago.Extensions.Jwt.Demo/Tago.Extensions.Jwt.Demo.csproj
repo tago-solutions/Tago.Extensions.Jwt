@@ -10,8 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Tago.Extensions.Configuration.Encryption" Version="3.1.0-preview-11" />
-    <PackageReference Include="Tago.Extensions.Jwt" Version="3.1.0-preview-1106" />    
-    <PackageReference Include="Tago.Extensions.Logging.File" Version="3.1.0-preview-05" />
+    <PackageReference Include="Tago.Extensions.Jwt" Version="3.1.0-preview-1111" />    
+    <PackageReference Include="Tago.Extensions.Logging.File" Version="3.1.0-preview-05" />    
   </ItemGroup> 
- 
+
 </Project>
