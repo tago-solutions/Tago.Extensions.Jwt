@@ -70,7 +70,33 @@ namespace Tago.Extensions.Jwt.Demo
 
             services.AddJwt(o =>
             {
-                o.Configure(Configuration.GetSection("Jwt:Settings"));
+                //o.Configure(Configuration.GetSection("Jwt:Settings"));
+                o.Configure(cfg=> {
+                    cfg.Keys.Add(new JwtValidationConfig
+                    {
+                        Priority = -1,
+                        Selector = ".*",
+                        SelectorType = ValidationKeyMatcherTypes.Regex,                        
+                        KeySettings = new JwtSigningSettings
+                        {
+                            Jwks = new JwtJwks
+                            {
+                                Path = "c:\\jwks\\jwks.json"
+                            }
+                        }
+
+                    });
+                    //cfg.SetDefaultValidationSettings(new JwtValidationConfig
+                    //{
+                    //    KeySettings = new JwtSigningSettings
+                    //    {
+                    //        Jwks = new JwtJwks
+                    //        {
+                    //            Path = "c:\\jwks\\jwks.json"
+                    //        }
+                    //    }
+                    //});
+                });
 
                 o.ConfigureValildators(builder => {
                     builder.Add("iss", new TokenValidator[] {
